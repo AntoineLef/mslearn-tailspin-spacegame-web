@@ -29,27 +29,13 @@ steps:
     displayName: 'Write build info'
     workingDirectory: $(webappRootDir)
 
-  - task: DotNetCoreCLI@2
-    displayName: 'Restore project dep'
-    inputs:
-      command: 'restore'
-      projects: '**/*.csproj'
+  - template: templates/build.yml
+    parameters:
+      buildConfiguration: 'Debug'
 
-  - task: DotNetCoreCLI@2
-    displayName: 'Build $(buildConfiguration) project'
-    inputs:
-      command: 'build'
-      projects: '**/*.csproj'
-      arguments: '--no-restore --configuration $(buildConfiguration)'
-
-  - task: DotNetCoreCLI@2
-    displayName: 'Publish $(buildConfiguration)'
-    inputs:
-      command: 'publish'
-      projects: '**/*.csproj'
-      publishWebProjects: false
-      arguments: '--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(buildConfiguration)'
-      zipAfterPublish: true
+  - template: templates/build.yml
+    parameters:
+      buildConfiguration: 'Release'
 
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Artifact: drop'
