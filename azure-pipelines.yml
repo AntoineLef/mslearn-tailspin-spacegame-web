@@ -1,2 +1,42 @@
 pool:
   vmImage: 'Ubuntu-16.04'
+  demands:
+    - npm
+
+variables:
+  buildConfiguration: 'Release'
+  dotnetVersion: 2.1.505
+  webappRootDir: 'Tailspin.SpaceGame.Web/wwwroot'
+
+steps:
+  - task: DotNetCoreInstaller@0
+    displayName: 'Use .Net Core'
+    inputs:
+      version: $(dotnetVersion)
+    
+  - task: Npm@1
+    displayName: 'Run NPM'
+    inputs:
+      verbose: false
+
+  - script: './node_modules/.bin/node-sass $(webappRootDir) --output $(webappRootDir)'
+    displayName: Compile Saas
+  
+  - task: Gulp@1
+    displayName: 'Run Gulp'
+  
+  - script: 'echo "$(Build.DefinitionName), $(Build.BuildId), $(Build.BuildNumber)" > buildinfo.txt'
+    displayName: 'Write build info'
+    workingDirectory: $(webappRootDir)
+
+  - template: templates/build.yml
+    parameters:
+      buildConfiguration: 'Debug'
+
+  - template: templates/build.yml
+    parameters:
+      buildConfiguration: 'Release'
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Artifact: drop'
+    condition: succeeded()

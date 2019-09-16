@@ -1,0 +1,25 @@
+parameters: 
+  buildConfiguration: ''
+
+steps:
+  - task: DotNetCoreCLI@2
+    displayName: 'Restore project dep'
+    inputs:
+      command: 'restore'
+      projects: '**/*.csproj'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Build ${{parameters.buildConfiguration}} project'
+    inputs:
+      command: 'build'
+      projects: '**/*.csproj'
+      arguments: '--no-restore --configuration ${{parameters.buildConfiguration}}'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Publish ${{parameters.buildConfiguration}}'
+    inputs:
+      command: 'publish'
+      projects: '**/*.csproj'
+      publishWebProjects: false
+      arguments: '--no-build --configuration ${{parameters.buildConfiguration}} --output $(Build.ArtifactStagingDirectory)/${{parameters.buildConfiguration}}'
+      zipAfterPublish: true
