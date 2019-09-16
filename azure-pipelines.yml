@@ -1,2 +1,38 @@
 pool:
   vmImage: 'Ubuntu-16.04'
+  demands:
+    - npm
+
+steps:
+  - task: DotNetCoreInstaller@0
+    displayName: 'Use .Net Core'
+    inputs:
+      version: 2.1.505
+    
+  - task: Npm@1
+    displayName: 'Run NPM'
+    inputs:
+      verbose: false
+
+  - script: './node_modules/.bin/node-sass Tailspin.SpaceGame.Web/wwwroot --output Tailspin.SpaceGame.Web/wwwroot'
+    displayName: Compile Saas
+  
+  - task: Gulp@1
+    displayName: 'Run Gulp'
+  
+  - script: 'echo "$(Build.DefinitionName), $(Build.BuildId), $(Build.BuildNumber)" > buildinfo.txt'
+    displayName: 'Write build info'
+    workingDirectory: Tailspin.SpaceGame.Web/wwwroot
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Restore project dep'
+    inputs:
+      command: 'restore'
+      projects: '**/*.csproj'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Build release project'
+    inputs:
+      command: 'build'
+      projects: '**/*.csproj'
+      arguments: '--no-restore --configuration Release'
