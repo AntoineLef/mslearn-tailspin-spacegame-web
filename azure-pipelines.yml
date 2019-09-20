@@ -5,38 +5,55 @@ pool:
 
 variables:
   buildConfiguration: 'Release'
-  dotnetVersion: 2.1.505
-  webappRootDir: 'Tailspin.SpaceGame.Web/wwwroot'
+  wwwrootDir: 'Tailspin.SpaceGame.Web/wwwroot'
+  dotnetSdkVersion: '2.1.505'
 
 steps:
-  - task: DotNetCoreInstaller@0
-    displayName: 'Use .Net Core'
-    inputs:
-      version: $(dotnetVersion)
-    
-  - task: Npm@1
-    displayName: 'Run NPM'
-    inputs:
-      verbose: false
+- task: DotNetCoreInstaller@0
+  displayName: 'Use .NET Core SDK $(dotnetSdkVersion)'
+  inputs:
+    version: '$(dotnetSdkVersion)'
 
-  - script: './node_modules/.bin/node-sass $(webappRootDir) --output $(webappRootDir)'
-    displayName: Compile Saas
-  
-  - task: Gulp@1
-    displayName: 'Run Gulp'
-  
-  - script: 'echo "$(Build.DefinitionName), $(Build.BuildId), $(Build.BuildNumber)" > buildinfo.txt'
-    displayName: 'Write build info'
-    workingDirectory: $(webappRootDir)
+- task: Npm@1
+  displayName: 'Run npm install'
+  inputs:
+    verbose: false
 
-  - template: templates/build.yml
-    parameters:
-      buildConfiguration: 'Debug'
+- script: './node_modules/.bin/node-sass $(wwwrootDir) --output $(wwwrootDir)'
+  displayName: 'Compile Sass assets'
 
-  - template: templates/build.yml
-    parameters:
-      buildConfiguration: 'Release'
+- task: gulp@1
+  displayName: 'Run gulp tasks'
 
-  - task: PublishBuildArtifacts@1
-    displayName: 'Publish Artifact: drop'
-    condition: succeeded()
+- script: 'echo "$(Build.DefinitionName), $(Build.BuildId), $(Build.BuildNumber)" > buildinfo.txt'
+  displayName: 'Write build info'
+  workingDirectory: $(wwwrootDir)
+
+- template: templates/build.yml
+  parameters:
+    buildConfiguration: 'Debug'
+
+- template: templates/build.yml
+  parameters:
+    buildConfiguration: 'Release'
+
+- task: DotNetCoreCLI@2
+  displayName: 'Test the project - $(buildConfiguration)'
+  inputs:
+    command: 'test'
+    arguments: '--no-build --configuration $(buildConfiguration)'
+    publishTestResults: true
+    projects: '**/*Tests.csproj'
+
+- task: DotNetCoreCLI@2
+  displayName: 'Publish the project - $(buildConfiguration)'
+  inputs:
+    command: 'publish'
+    projects: '**/*.csproj'
+    publishWebProjects: false
+    arguments: '--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(buildConfiguration)'
+    zipAfterPublish: true
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact: drop'
+  condition: succeeded()
